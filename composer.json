@@ -1,0 +1,11 @@
+{
+    "name": "vendor/hums-api",
+    "autoload": {
+        "psr-4": {
+            "": "src/"
+        }
+    },
+    "require": {
+        "vlucas/phpdotenv": "^5.5"
+    }
+}

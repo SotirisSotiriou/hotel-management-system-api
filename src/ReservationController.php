@@ -1,7 +1,6 @@
 <?php
 
-class ReceptionController{
-
+class ReservationController{
     private ReceptionGateway $gateway;
 
 
@@ -10,69 +9,61 @@ class ReceptionController{
     }
 
 
-    public function processRequest(string $method, string $service): void{
+    public function processRequest(string $method): void{
         $data_json = file_get_contents('php://input');
         
-        $data = json_decode($data_json, true);
+        $data = (array)json_decode($data_json, true);
 
         $id = null;
         if(!empty($data['id'])){
             $id = $data['id'];
         }
 
-        $errors = $this->getValidationErrors($data, $service, $method);
+        $errors = $this->getValidationErrors($data, $method);
         if(!empty($errors)){
             $this->respondUnprocessableEntity($errors);
             return;
         }
 
-        if($id == null){
+        if($id === null){
             if($method === "POST"){
-                if($service === "room"){
-                    $output_data = $this->gateway->createNewRoom($data);
-                    $this->respondRoomCreated($output_data);
-                }
+                $output_data = $this->gateway->addReservation($data);
+                $this->respondReservationCreated($output_data);
             }
             else if($method === "GET"){
-                if($service === "room"){
-                    $output_data = $this->gateway->getAllRooms($data);
-                    echo json_encode($output_data);
-                }
+                $output_data = $this->gateway->getAllReservations();
+                echo json_encode($output_data);
             }
             else{
-                $this->respondServiceNotFound();
+                $this->respondMethodNotAllowed("GET, POST");
             }
         }
         else{
             if($method === "GET"){
-                if($service === "room"){
-                    $output_data = $this->gateway->getRoomByID($id);
-                    if(empty($output_data)){
-                        $this->respondRoomNotFound($id);
-                    }
-                    else{
-                        echo json_encode($output_data);
-                    }
+                $output_data = $this->gateway->getreservationInfo($id);
+                if($output_data === false){
+                    $this->respondReservationNotFound($id);
                 }
-            }
-            else if($method === "DELETE"){
-                if($service === "room"){
-                    $output_data = $this->gateway->deleteRoom($id);
-                    if($output_data > 0){
-                        $this->respondRoomDeleted($id);
-                    }
-                    else{
-                        $this->respondRoomNotFound($id);
-                    }
+                else{
+                    echo json_encode($output_data);
                 }
             }
             else if($method === "PATCH"){
-                $output_data = $this->gateway->updateRoomInfo($id, $data);
+                $output_data = $this->gateway->updateReservationInfo($id, $data);
                 if($output_data > 0){
-                    $this->respondRoomUpdated($id);
+                    $this->respondReservationUpdated($id);
                 }
                 else{
-                    $this->respondRoomNotFound();
+                    $this->respondReservationNotFound($id);
+                }
+            }
+            else if($method === "DELETE"){
+                $output_data = $this->gateway->deleteReservation($id);
+                if($output_data > 0){
+                    $this->respondReservationDeleted($id);
+                }
+                else{
+                    $this->respondReservationNotFound($id);
                 }
             }
             else{
@@ -93,32 +84,15 @@ class ReceptionController{
         header("Allow: $allowed_methods");
     }
 
-    private function respondServiceNotFound(){
+    private function respondServiceNotFound(): void{
         http_response_code(404);
         echo json_encode(["message" => "Service not found"]);
     }
 
 
-    private function respondRoomNotFound(string $id): void{
-        http_response_code(404);
-        echo json_encode(["message" => "Room with id $id not found"]);
-    }
-
-    private function respondCustomerNotFound(string $id): void{
-        http_response_code(404);
-        echo json_encode(["message" => "Customer with id $id not found"]);
-    }
-    
-    
     private function respondReservationNotFound(string $id): void{
         http_response_code(404);
         echo json_encode(["message" => "Reservation with id $id not found"]);
-    }
-
-
-    private function respondRoomCreated(string $id): void{
-        http_response_code(201);
-        echo json_encode(["message" => "Room created", "id" => $id]);
     }
 
 
@@ -128,52 +102,23 @@ class ReceptionController{
     }
 
 
-    private function respondCustomerCreated(string $id): void{
-        http_response_code(201);
-        echo json_encode(["message" => "Customer created", "id" => $id]);
-    }
-
     private function respondReservationDeleted(string $id): void{
         http_response_code(200);
         echo json_encode(["message" => "Reservation deleted", "id" => $id]);
     }
 
-    private function respondRoomDeleted(string $id): void{
-        http_response_code(200);
-        echo json_encode(["message" => "Room deleted", "id" => $id]);
-    }
-
-    private function respondCustomerDeleted(string $id): void{
-        http_response_code(200);
-        echo json_encode(["message" => "Customer deleted", "id" => $id]);
-    }
 
     private function respondReservationUpdated(string $id): void{
         http_response_code(200);
         echo json_encode(["message" => "Reservation updated", "id" => $id]);
     }
 
-    private function respondRoomUpdated(string $id): void{
-        http_response_code(200);
-        echo json_encode(["message" => "Room updated", "id" => $id]);
-    }
 
-    private function respondCustomerUpdated(string $id): void{
-        http_response_code(200);
-        echo json_encode(["message" => "Customer updated", "id" => $id]);
-    }
-
-    private function respondEmptyData(){
-        http_response_code(404);
-        echo json_encode(["message" => "Empty data"]);
-    }
-
-
-    private function getValidationErrors(array $data, string $service, string $method){
+    public function getValidationErrors(array $data, string $method): array{
         $errors = [];
 
-        if($method === "POST"){
-            if($service === "reservation"){
+        switch($method){
+            case "POST":
                 if(empty($data["customer_id"])){
                     $errors[] = "customer_id is required";
                 }
@@ -229,43 +174,12 @@ class ReceptionController{
                 else if(!$data["dinner"] === "true" and !$data["dinner"] === "false"){
                     $errors[] = "dinner invalid format";
                 }
-            }
-            else if($service === "room"){
-                if(empty($data["number"])){
-                    $errors[] = "number is required";
-                }else if(filter_var($data["number"], FILTER_VALIDATE_INT) === false){
-                    $errors[] = "room number must be an integer";
-                }
-    
-                if(empty($data["type"])){
-                    $errors[] = "type is required";
-                }
-    
-                if(empty($data["beds"])){
-                    $errors[] = "beds number required";
-                }else if(filter_var($data["beds"], FILTER_VALIDATE_INT) === false){
-                    $errors[] = "beds number must be an integer";
-                }
-    
-                if(empty($data["cost_per_day"])){
-                    $errors[] = "cost_per_day is required";
-                }else if(filter_var($data["cost_per_day"], FILTER_VALIDATE_FLOAT) === false){
-                    $errors[] = "cost must be a decimal number";
-                }
-            }
-            else if($service === "customer"){
-                if(empty($data["firstname"])){
-                    $errors[] = "firstname is required";
-                }
-    
-                if(empty($data["lastname"])){
-                    $errors[] = "lastname is required";
-                }
-            }
+                break;
 
-        }
-        else if($method === "PATCH"){
-            if($service === "reservation"){
+            case "GET":
+                break;
+
+            case "PATCH":
                 if(!empty($data["customer_id"])){
                     if(filter_var($data["customer_id"], FILTER_VALIDATE_INT) == false){
                         $errors[] = "customer_id invalid format";
@@ -306,26 +220,10 @@ class ReceptionController{
                         $errors[] = "dinner invalid format";
                     }
                 }
-                
-            }
-            else if($service === "room"){
-                if(!empty($data["beds"])){
-                    if(filter_var($data["beds"], FILTER_VALIDATE_INT) == false){
-                        $errors[] = "beds invalid format";
-                    }
-                }
-                if(!empty($data["cost_per_day"])){
-                    if(filter_var($data["cost_per_day"], FILTER_VALIDATE_FLOAT) == false){
-                        $errors[] = "cost_per_day invalid format";
-                    }
-                }
-                if(!empty($data["number"])){
-                    if(filter_var($data["number"], FILTER_VALIDATE_INT) == false){
-                        $errors[] = "number invalid format";
-                    }
-                }
-            }
-            //customer table doen't need anything
+                break;
+
+            case "DELETE":
+                break;
         }
 
         return $errors;

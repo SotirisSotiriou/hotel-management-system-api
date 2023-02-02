@@ -165,7 +165,7 @@ class ReceptionGateway{
                 FROM room_reservation
                 ORDER BY checkin DESC";
         
-        $stmt = $this->conn-prepare($sql);
+        $stmt = $this->conn->prepare($sql);
 
         $stmt->execute();
 
@@ -183,7 +183,7 @@ class ReceptionGateway{
     }
     
 
-    public function getReservasionInfo(int $id): array | false{
+    public function getReservationInfo(int $id): array | false{
         $sql = "SELECT * 
                 FROM room_reservation 
                 WHERE id = :id";

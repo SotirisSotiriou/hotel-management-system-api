@@ -29,8 +29,30 @@ if(!$auth->authenticateAccessToken()){
 
 $reception_gateway = new ReceptionGateway($database);
 
-$reception_controller = new ReceptionController($reception_gateway);
+switch($service){
+    case "room":
+        $controller = new RoomController($reception_gateway);
+        $controller->processRequest($_SERVER['REQUEST_METHOD']);
+        break;
 
-$reception_controller->processRequest($_SERVER['REQUEST_METHOD'], $service);
+    case "reservation":
+        $controller = new ReservationController($reception_gateway);
+        $controller->processRequest($_SERVER['REQUEST_METHOD']);
+        break;
+
+    case "customer":
+        $controller = new CustomerController($reception_gateway);
+        $controller->processRequest($_SERVER['REQUEST_METHOD']);
+        break;
+    
+    default:
+        respondServiceNotFound();
+}
 
 exit; 
+
+
+function respondServiceNotFound(){
+    http_response_code(404);
+    echo json_encode(["message" => "Service not found"]);
+}

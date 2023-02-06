@@ -9,7 +9,7 @@ class ReceptionGateway{
 
 //Room features
 
-    public function getAllRooms(){
+    public function getAllRooms(): array | false{
         $sql = "SELECT *
                 FROM room
                 ORDER BY number ASC";

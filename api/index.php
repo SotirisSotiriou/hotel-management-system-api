@@ -29,20 +29,25 @@ if(!$auth->authenticateAccessToken()){
 
 $reception_gateway = new ReceptionGateway($database);
 
+$id = null;
+if(!empty($parts[3])){
+    $id = (int)$parts[3];
+}
+
 switch($service){
     case "room":
         $controller = new RoomController($reception_gateway);
-        $controller->processRequest($_SERVER['REQUEST_METHOD']);
+        $controller->processRequest($_SERVER['REQUEST_METHOD'], $id);
         break;
 
     case "reservation":
         $controller = new ReservationController($reception_gateway);
-        $controller->processRequest($_SERVER['REQUEST_METHOD']);
+        $controller->processRequest($_SERVER['REQUEST_METHOD'], $id);
         break;
 
     case "customer":
         $controller = new CustomerController($reception_gateway);
-        $controller->processRequest($_SERVER['REQUEST_METHOD']);
+        $controller->processRequest($_SERVER['REQUEST_METHOD'], $id);
         break;
     
     default:

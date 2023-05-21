@@ -9,15 +9,10 @@ class ReservationController{
     }
 
 
-    public function processRequest(string $method): void{
+    public function processRequest(string $method, ?int $id): void{
         $data_json = file_get_contents('php://input');
         
         $data = (array)json_decode($data_json, true);
-
-        $id = null;
-        if(!empty($data['id'])){
-            $id = $data['id'];
-        }
 
         $errors = $this->getValidationErrors($data, $method);
         if(!empty($errors)){

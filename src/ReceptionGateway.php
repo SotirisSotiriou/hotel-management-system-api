@@ -170,7 +170,7 @@ class ReceptionGateway{
         $stmt->execute();
 
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
-
+ 
         while($row = $stmt->fetch(PDO::FETCH_ASSOC)){
             $data[] = $row;
         }
@@ -304,7 +304,7 @@ class ReceptionGateway{
                 FROM customer
                 ORDER BY id ASC";
 
-        $stmt - $this->conn->prepare($sql);
+        $stmt = $this->conn->prepare($sql);
 
         $stmt->execute();
 
